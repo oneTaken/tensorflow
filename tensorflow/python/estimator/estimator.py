@@ -431,7 +431,11 @@ class Estimator(object):
     Returns:
       A dict containing the evaluation metrics specified in `model_fn` keyed by
       name, as well as an entry `global_step` which contains the value of the
-      global step for which this evaluation was performed.
+      global step for which this evaluation was performed. For canned
+      estimators, the dict contains the `loss` (mean loss per mini-batch) and
+      the `average_loss` (mean loss per sample). Canned classifiers also return
+      the `accuracy`. Canned regressors also return the `label/mean` and the
+      `prediction/mean`.
 
     Raises:
       ValueError: If `steps <= 0`.
@@ -1237,7 +1241,8 @@ class Estimator(object):
       # We want to create the iterations variable outside the distribution scope
       # as that is just stored on the host and mainly used to drive the loop
       # and doesn't need to be a Mirrored/Device variable.
-      steps_per_run_variable = training.get_or_create_steps_per_run_variable()
+      if is_tpu_strategy:
+        steps_per_run_variable = training.get_or_create_steps_per_run_variable()
       with self._train_distribution.scope():
         random_seed.set_random_seed(self._config.tf_random_seed)
         iterator, input_hooks = self._get_iterator_from_input_fn(

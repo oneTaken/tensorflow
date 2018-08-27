@@ -4,7 +4,8 @@ licenses(["notice"])  # Apache 2.0
 
 exports_files(["LICENSE"])
 
-load("//tensorflow:tensorflow.bzl", "cuda_py_test", "py_test")
+load("//tensorflow:tensorflow.bzl", "cuda_py_test")
+load("//tensorflow:tensorflow.bzl", "py_test")
 
 py_test(
     name = "batch_dataset_op_test",
@@ -194,6 +195,31 @@ py_test(
 )
 
 py_test(
+    name = "lmdb_dataset_op_test",
+    size = "medium",
+    srcs = ["lmdb_dataset_op_test.py"],
+    data = ["//tensorflow/core:lmdb_testdata"],
+    srcs_version = "PY2AND3",
+    tags = [
+        "no_pip",
+        "no_windows",
+    ],
+    deps = [
+        "//tensorflow/contrib/data/python/ops:readers",
+        "//tensorflow/python:client_testlib",
+        "//tensorflow/python:constant_op",
+        "//tensorflow/python:dtypes",
+        "//tensorflow/python:errors",
+        "//tensorflow/python:framework_ops",
+        "//tensorflow/python:parsing_ops",
+        "//tensorflow/python:platform",
+        "//tensorflow/python:platform_test",
+        "//tensorflow/python:session",
+        "//third_party/py/numpy",
+    ],
+)
+
+py_test(
     name = "map_dataset_op_test",
     size = "medium",
     srcs = ["map_dataset_op_test.py"],
@@ -206,6 +232,25 @@ py_test(
     deps = [
         "//tensorflow/contrib/data/python/ops:batching",
         "//tensorflow/contrib/data/python/ops:error_ops",
+        "//tensorflow/contrib/data/python/ops:optimization",
+        "//tensorflow/python:array_ops",
+        "//tensorflow/python:client_testlib",
+        "//tensorflow/python:errors",
+        "//tensorflow/python:framework_ops",
+        "//tensorflow/python:io_ops",
+        "//tensorflow/python:math_ops",
+        "//tensorflow/python:util",
+        "//tensorflow/python/data/ops:dataset_ops",
+        "//third_party/py/numpy",
+    ],
+)
+
+py_test(
+    name = "filter_dataset_op_test",
+    size = "medium",
+    srcs = ["filter_dataset_op_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
         "//tensorflow/contrib/data/python/ops:optimization",
         "//tensorflow/python:array_ops",
         "//tensorflow/python:client_testlib",

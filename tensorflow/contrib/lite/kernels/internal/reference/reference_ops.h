@@ -407,18 +407,29 @@ void Conv(const uint8* input_data, const Dims<4>& input_dims,
 }
 
 template <typename T>
-inline void DepthToSpace(const T* input_data, const Dims<4>& input_dims,
-                         int block_size, T* output_data,
-                         const Dims<4>& output_dims) {
-  const int input_depth = ArraySize(input_dims, 0);
-  const int input_width = ArraySize(input_dims, 1);
-  const int input_height = ArraySize(input_dims, 2);
-  const int input_batch = ArraySize(input_dims, 3);
+inline void DepthToSpace(const tflite::DepthToSpaceParams& op_params,
+                         const RuntimeShape& unextended_input_shape,
+                         const T* input_data,
+                         const RuntimeShape& unextended_output_shape,
+                         T* output_data) {
+  TFLITE_DCHECK_LE(unextended_input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
+  RuntimeShape input_shape =
+      RuntimeShape::ExtendedShape(4, unextended_input_shape);
+  RuntimeShape output_shape =
+      RuntimeShape::ExtendedShape(4, unextended_output_shape);
 
-  const int output_depth = ArraySize(output_dims, 0);
-  const int output_width = ArraySize(output_dims, 1);
-  const int output_height = ArraySize(output_dims, 2);
-  const int output_batch = ArraySize(output_dims, 3);
+  const int input_depth = input_shape.Dims(3);
+  const int input_width = input_shape.Dims(2);
+  const int input_height = input_shape.Dims(1);
+  const int input_batch = input_shape.Dims(0);
+
+  const int output_depth = output_shape.Dims(3);
+  const int output_width = output_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_batch = output_shape.Dims(0);
+
+  const int32 block_size = op_params.block_size;
 
   TFLITE_DCHECK_EQ(input_width * block_size, output_width);
   TFLITE_DCHECK_EQ(input_height * block_size, output_height);
@@ -437,9 +448,9 @@ inline void DepthToSpace(const T* input_data, const Dims<4>& input_dims,
           const int in_h = out_h / block_size;
           const int in_b = out_b;
 
+          const int input_index = Offset(input_shape, in_b, in_h, in_w, in_d);
           const int output_index =
-              Offset(output_dims, out_d, out_w, out_h, out_b);
-          const int input_index = Offset(input_dims, in_d, in_w, in_h, in_b);
+              Offset(output_shape, out_b, out_h, out_w, out_d);
 
           output_data[output_index] = input_data[input_index];
         }
@@ -448,19 +459,42 @@ inline void DepthToSpace(const T* input_data, const Dims<4>& input_dims,
   }
 }
 
+// Legacy Dims<4>.
 template <typename T>
-inline void SpaceToDepth(const T* input_data, const Dims<4>& input_dims,
+inline void DepthToSpace(const T* input_data, const Dims<4>& input_dims,
                          int block_size, T* output_data,
                          const Dims<4>& output_dims) {
-  const int input_depth = ArraySize(input_dims, 0);
-  const int input_width = ArraySize(input_dims, 1);
-  const int input_height = ArraySize(input_dims, 2);
-  const int input_batch = ArraySize(input_dims, 3);
+  tflite::DepthToSpaceParams op_params;
+  op_params.block_size = block_size;
 
-  const int output_depth = ArraySize(output_dims, 0);
-  const int output_width = ArraySize(output_dims, 1);
-  const int output_height = ArraySize(output_dims, 2);
-  const int output_batch = ArraySize(output_dims, 3);
+  DepthToSpace(op_params, DimsToShape(input_dims), input_data,
+               DimsToShape(output_dims), output_data);
+}
+
+template <typename T>
+inline void SpaceToDepth(const tflite::SpaceToDepthParams& op_params,
+                         const RuntimeShape& unextended_input_shape,
+                         const T* input_data,
+                         const RuntimeShape& unextended_output_shape,
+                         T* output_data) {
+  TFLITE_DCHECK_LE(unextended_input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
+  RuntimeShape input_shape =
+      RuntimeShape::ExtendedShape(4, unextended_input_shape);
+  RuntimeShape output_shape =
+      RuntimeShape::ExtendedShape(4, unextended_output_shape);
+
+  const int input_depth = input_shape.Dims(3);
+  const int input_width = input_shape.Dims(2);
+  const int input_height = input_shape.Dims(1);
+  const int input_batch = input_shape.Dims(0);
+
+  const int output_depth = output_shape.Dims(3);
+  const int output_width = output_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_batch = output_shape.Dims(0);
+
+  const int32 block_size = op_params.block_size;
 
   TFLITE_DCHECK_EQ(input_width, output_width * block_size);
   TFLITE_DCHECK_EQ(input_height, output_height * block_size);
@@ -478,15 +512,27 @@ inline void SpaceToDepth(const T* input_data, const Dims<4>& input_dims,
           const int out_h = in_h / block_size;
           const int out_b = in_b;
 
+          const int input_index = Offset(input_shape, in_b, in_h, in_w, in_d);
           const int output_index =
-              Offset(output_dims, out_d, out_w, out_h, out_b);
-          const int input_index = Offset(input_dims, in_d, in_w, in_h, in_b);
+              Offset(output_shape, out_b, out_h, out_w, out_d);
 
           output_data[output_index] = input_data[input_index];
         }
       }
     }
   }
+}
+
+// Legacy Dims<4>.
+template <typename T>
+inline void SpaceToDepth(const T* input_data, const Dims<4>& input_dims,
+                         int block_size, T* output_data,
+                         const Dims<4>& output_dims) {
+  tflite::SpaceToDepthParams op_params;
+  op_params.block_size = block_size;
+
+  SpaceToDepth(op_params, DimsToShape(input_dims), input_data,
+               DimsToShape(output_dims), output_data);
 }
 
 inline void FullyConnected(const float* input_data, const Dims<4>& input_dims,
@@ -2034,6 +2080,25 @@ void Pack(int dim, const Scalar* const* input_data,
   }
 }
 
+template <typename Scalar>
+void Unpack(int axis, const Scalar* input_data, const Dims<4>& input_dims,
+            int dimensions, int outputs_count, Scalar* const* output_datas,
+            const Dims<4>& output_dims) {
+  int outer_size = 1;
+  for (int i = dimensions - axis; i < 4; i++) {
+    outer_size *= input_dims.sizes[i];
+  }
+
+  const int copy_size = FlatSize(input_dims) / outer_size / outputs_count;
+  for (int k = 0; k < outer_size; k++) {
+    for (int i = 0; i < outputs_count; ++i) {
+      Scalar* output_ptr = output_datas[i] + copy_size * k;
+      int loc = k * outputs_count * copy_size + i * copy_size;
+      memcpy(output_ptr, input_data + loc, copy_size * sizeof(Scalar));
+    }
+  }
+}
+
 // TODO(prabhumk): This is the same as the optimized implementation.
 // TODO(prabhumk): The quantized implementation of concatentation isn't fully
 // quantized as it takes scale as a floating point value. This should be fixed
@@ -3467,24 +3532,35 @@ inline void ResizeBilinear(const uint8* input_data, const Dims<4>& input_dims,
 }
 
 template <typename T>
-inline void SpaceToBatchND(const T* input_data, const Dims<4>& input_dims,
-                           const int32* block_shape_data,
-                           const Dims<4>& block_shape_dims,
-                           const int32* paddings_data,
-                           const Dims<4>& paddings_dims, T* output_data,
-                           const Dims<4>& output_dims,
-                           const int32_t pad_value) {
-  const int output_batch_size = ArraySize(output_dims, 3);
-  const int output_height = ArraySize(output_dims, 2);
-  const int output_width = ArraySize(output_dims, 1);
-  const int input_batch_size = ArraySize(input_dims, 3);
-  const int input_height = ArraySize(input_dims, 2);
-  const int input_width = ArraySize(input_dims, 1);
-  const int depth = ArraySize(input_dims, 0);
+inline void SpaceToBatchND(
+    const SpaceToBatchParams& params,
+    const RuntimeShape& unextended_input1_shape, const T* input1_data,
+    const RuntimeShape& unextended_input2_shape, const int32* block_shape_data,
+    const RuntimeShape& unextended_input3_shape, const int32* paddings_data,
+    const RuntimeShape& unextended_output_shape, T* output_data) {
+  TFLITE_DCHECK_LE(unextended_input1_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
+  RuntimeShape input1_shape =
+      RuntimeShape::ExtendedShape(4, unextended_input1_shape);
+  RuntimeShape output_shape =
+      RuntimeShape::ExtendedShape(4, unextended_output_shape);
+
+  const int depth = input1_shape.Dims(3);
+  const int input_width = input1_shape.Dims(2);
+  const int input_height = input1_shape.Dims(1);
+  const int input_batch_size = input1_shape.Dims(0);
+
+  const int output_width = output_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_batch_size = output_shape.Dims(0);
+
   const int block_shape_height = block_shape_data[0];
   const int block_shape_width = block_shape_data[1];
   const int padding_top = paddings_data[0];
   const int padding_left = paddings_data[2];
+
+  // For uint8 quantized, the correct padding "zero value" is the output offset.
+  const int32_t pad_value = params.output_offset;
 
   for (int out_b = 0; out_b < output_batch_size; ++out_b) {
     int input_batch = out_b % input_batch_size;
@@ -3492,20 +3568,20 @@ inline void SpaceToBatchND(const T* input_data, const Dims<4>& input_dims,
     int shift_h = (out_b / input_batch_size) / block_shape_width;
     for (int out_h = 0; out_h < output_height; ++out_h) {
       for (int out_w = 0; out_w < output_width; ++out_w) {
-        T* out = output_data + Offset(output_dims, 0, out_w, out_h, out_b);
+        T* out = output_data + Offset(output_shape, out_b, out_h, out_w, 0);
         if (out_h * block_shape_height + shift_h < padding_top ||
             out_h * block_shape_height + shift_h >=
                 padding_top + input_height ||
             out_w * block_shape_width + shift_w < padding_left ||
             out_w * block_shape_width + shift_w >= padding_left + input_width) {
+          // This may not execute correctly when pad_value != 0 and T != uint8.
           memset(out, pad_value, depth * sizeof(T));
         } else {
           const T* in =
-              input_data +
-              Offset(input_dims, 0,
-                     (out_w * block_shape_width + shift_w) - padding_left,
+              input1_data +
+              Offset(input1_shape, input_batch,
                      (out_h * block_shape_height + shift_h) - padding_top,
-                     input_batch);
+                     (out_w * block_shape_width + shift_w) - padding_left, 0);
           memcpy(out, in, depth * sizeof(T));
         }
       }
@@ -3513,6 +3589,25 @@ inline void SpaceToBatchND(const T* input_data, const Dims<4>& input_dims,
   }
 }
 
+// Legacy Dims<4>.
+template <typename T>
+inline void SpaceToBatchND(const T* input_data, const Dims<4>& input_dims,
+                           const int32* block_shape_data,
+                           const Dims<4>& block_shape_dims,
+                           const int32* paddings_data,
+                           const Dims<4>& paddings_dims, T* output_data,
+                           const Dims<4>& output_dims,
+                           const int32_t pad_value) {
+  tflite::SpaceToBatchParams op_params;
+  op_params.output_offset = pad_value;
+
+  SpaceToBatchND(op_params, DimsToShape(input_dims), input_data,
+                 DimsToShape(block_shape_dims), block_shape_data,
+                 DimsToShape(paddings_dims), paddings_data,
+                 DimsToShape(output_dims), output_data);
+}
+
+// Legacy if no good reason to have signature with pad_value=0.
 template <typename T>
 inline void SpaceToBatchND(const T* input_data, const Dims<4>& input_dims,
                            const int32* block_shape_data,
@@ -3520,23 +3615,37 @@ inline void SpaceToBatchND(const T* input_data, const Dims<4>& input_dims,
                            const int32* paddings_data,
                            const Dims<4>& paddings_dims, T* output_data,
                            const Dims<4>& output_dims) {
-  SpaceToBatchND(input_data, input_dims, block_shape_data, block_shape_dims,
-                 paddings_data, paddings_dims, output_data, output_dims, 0);
+  tflite::SpaceToBatchParams op_params;
+  op_params.output_offset = 0;
+
+  SpaceToBatchND(op_params, DimsToShape(input_dims), input_data,
+                 DimsToShape(block_shape_dims), block_shape_data,
+                 DimsToShape(paddings_dims), paddings_data,
+                 DimsToShape(output_dims), output_data);
 }
 
 template <typename T>
-inline void BatchToSpaceND(const T* input_data, const Dims<4>& input_dims,
-                           const int32* block_shape_data,
-                           const Dims<4>& block_shape_dims,
-                           const int32* crops_data, const Dims<4>& crops_dims,
-                           T* output_data, const Dims<4>& output_dims) {
-  const int output_batch_size = ArraySize(output_dims, 3);
-  const int output_height = ArraySize(output_dims, 2);
-  const int output_width = ArraySize(output_dims, 1);
-  const int input_batch_size = ArraySize(input_dims, 3);
-  const int input_height = ArraySize(input_dims, 2);
-  const int input_width = ArraySize(input_dims, 1);
-  const int depth = ArraySize(input_dims, 0);
+inline void BatchToSpaceND(
+    const RuntimeShape& unextended_input1_shape, const T* input1_data,
+    const RuntimeShape& unextended_input2_shape, const int32* block_shape_data,
+    const RuntimeShape& unextended_input3_shape, const int32* crops_data,
+    const RuntimeShape& unextended_output_shape, T* output_data) {
+  TFLITE_DCHECK_LE(unextended_input1_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
+  RuntimeShape input1_shape =
+      RuntimeShape::ExtendedShape(4, unextended_input1_shape);
+  RuntimeShape output_shape =
+      RuntimeShape::ExtendedShape(4, unextended_output_shape);
+
+  const int output_width = output_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_batch_size = output_shape.Dims(0);
+
+  const int depth = input1_shape.Dims(3);
+  const int input_width = input1_shape.Dims(2);
+  const int input_height = input1_shape.Dims(1);
+  const int input_batch_size = input1_shape.Dims(0);
+
   const int block_shape_width = block_shape_data[1];
   const int block_shape_height = block_shape_data[0];
   const int crops_top = crops_data[0];
@@ -3558,12 +3667,26 @@ inline void BatchToSpaceND(const T* input_data, const Dims<4>& input_dims,
         if (out_w < 0 || out_w >= output_width) {
           continue;
         }
-        T* out = output_data + Offset(output_dims, 0, out_w, out_h, out_batch);
-        const T* in = input_data + Offset(input_dims, 0, in_w, in_h, in_batch);
+        T* out = output_data + Offset(output_shape, out_batch, out_h, out_w, 0);
+        const T* in =
+            input1_data + Offset(input1_shape, in_batch, in_h, in_w, 0);
         memcpy(out, in, depth * sizeof(T));
       }
     }
   }
+}
+
+// Legacy Dims<4>.
+template <typename T>
+inline void BatchToSpaceND(const T* input_data, const Dims<4>& input_dims,
+                           const int32* block_shape_data,
+                           const Dims<4>& block_shape_dims,
+                           const int32* crops_data, const Dims<4>& crops_dims,
+                           T* output_data, const Dims<4>& output_dims) {
+  BatchToSpaceND(DimsToShape(input_dims), input_data,
+                 DimsToShape(block_shape_dims), block_shape_data,
+                 DimsToShape(crops_dims), crops_data, DimsToShape(output_dims),
+                 output_data);
 }
 
 // There are two versions of pad: Pad and PadV2.  In PadV2 there is a second
@@ -4099,6 +4222,70 @@ inline void Mean(const T* input_data, const Dims<4>& input_dims,
           value / (input_width * input_height);
     }
   }
+}
+
+// Computes the mean of elements across dimensions given in axis.
+// It does so in two stages, first calculates the sum of elements along the axis
+// then divides it by the number of element in axis for quantized values.
+template <typename T, typename U>
+inline bool Mean(const T* input_data, int32 input_zero_point, float input_scale,
+                 const int* input_dims, const int input_num_dims,
+                 T* output_data, int32 output_zero_point, float output_scale,
+                 const int* output_dims, const int output_num_dims,
+                 const int* axis, const int num_axis_dimensions, bool keep_dims,
+                 int* temp_index, int* resolved_axis, U* temp_sum) {
+  // Reset output data.
+  size_t num_outputs = 1;
+  for (int idx = 0; idx < output_num_dims; ++idx) {
+    size_t current = static_cast<size_t>(output_dims[idx]);
+    // Overflow prevention.
+    if (num_outputs > std::numeric_limits<size_t>::max() / current) {
+      return false;
+    }
+    num_outputs *= current;
+  }
+  for (size_t idx = 0; idx < num_outputs; ++idx) {
+    output_data[idx] = T();
+    temp_sum[idx] = U();
+  }
+
+  // Resolve axis.
+  int num_resolved_axis = 0;
+  if (!ResolveAxis(input_num_dims, axis, num_axis_dimensions, resolved_axis,
+                   &num_resolved_axis)) {
+    return false;
+  }
+
+  if (!ReduceSumImpl<T, U>(input_data, input_dims, output_dims, input_num_dims,
+                           output_num_dims, resolved_axis, num_resolved_axis,
+                           temp_index, temp_sum)) {
+    return false;
+  }
+
+  // Calculate mean by dividing output_data by num of aggregated element.
+  U num_elements_in_axis = 1;
+  for (int idx = 0; idx < num_resolved_axis; ++idx) {
+    size_t current = static_cast<size_t>(input_dims[resolved_axis[idx]]);
+    // Overflow prevention.
+    if (current > (std::numeric_limits<U>::max() / num_elements_in_axis)) {
+      return false;
+    }
+    num_elements_in_axis *= current;
+  }
+
+  if (num_elements_in_axis > 0) {
+    const float scale = input_scale / output_scale;
+    const float bias = -input_zero_point * scale;
+    for (size_t idx = 0; idx < num_outputs; ++idx) {
+      float float_mean = static_cast<float>(temp_sum[idx]) /
+                         static_cast<float>(num_elements_in_axis);
+
+      // Convert to float value.
+      output_data[idx] =
+          static_cast<T>(round(float_mean * scale + bias)) + output_zero_point;
+    }
+  }
+  return true;
 }
 
 template <typename T>

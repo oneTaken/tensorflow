@@ -2055,7 +2055,7 @@ class SVDFOpModel : public BaseSVDFOpModel {
   }
 };
 
-TEST(NNAPIDelegate, SVDFBlackBoxTestRank1) {
+TEST(NNAPIDelegate, DISABLED_SVDFBlackBoxTestRank1) {
   SVDFOpModel svdf(/*batches=*/2, /*units=*/4, /*input_size=*/3,
                    /*memory_size=*/10, /*rank=*/1);
   svdf.SetWeightsFeature({-0.31930989, -0.36118156, 0.0079667, 0.37613347,
@@ -2078,7 +2078,7 @@ TEST(NNAPIDelegate, SVDFBlackBoxTestRank1) {
   svdf.VerifyGoldens(svdf_input, svdf_golden_output_rank_1, sizeof(svdf_input));
 }
 
-TEST(NNAPIDelegate, SVDFBlackBoxTestRank2) {
+TEST(NNAPIDelegate, DISABLED_SVDFBlackBoxTestRank2) {
   SVDFOpModel svdf(/*batches=*/2, /*units=*/4, /*input_size=*/3,
                    /*memory_size=*/10, /*rank=*/2);
   svdf.SetWeightsFeature({-0.31930989, 0.0079667,   0.39296314,  0.37613347,
@@ -2434,7 +2434,8 @@ class NoCifgNoPeepholeNoProjectionNoClippingLstmTest : public BaseLstmTest {
   }
 };
 
-TEST_F(NoCifgNoPeepholeNoProjectionNoClippingLstmTest, LstmBlackBoxTest) {
+TEST_F(NoCifgNoPeepholeNoProjectionNoClippingLstmTest,
+       DISABLED_LstmBlackBoxTest) {
   const int n_batch = 1;
   const int n_input = 2;
   // n_cell and n_output have the same size when there is no projection.
@@ -2541,7 +2542,8 @@ class CifgNoPeepholeNoProjectionNoClippingLstmTest : public BaseLstmTest {
   }
 };
 
-TEST_F(CifgNoPeepholeNoProjectionNoClippingLstmTest, LstmBlackBoxTest) {
+TEST_F(CifgNoPeepholeNoProjectionNoClippingLstmTest,
+       DISABLED_LstmBlackBoxTest) {
   const int n_batch = 1;
   const int n_input = 2;
   // n_cell and n_output have the same size when there is no projection.
@@ -3200,7 +3202,7 @@ class NoCifgPeepholeProjectionClippingLstmTest : public BaseLstmTest {
   }
 };
 
-TEST_F(NoCifgPeepholeProjectionClippingLstmTest, LstmBlackBoxTest) {
+TEST_F(NoCifgPeepholeProjectionClippingLstmTest, DISABLED_LstmBlackBoxTest) {
   const int n_batch = 2;
   const int n_input = 5;
   const int n_cell = 20;
